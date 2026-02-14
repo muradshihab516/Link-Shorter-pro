@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Shortener Pro</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Background Glow -->
+    <div class="bg-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="logo-text">
+                    Link Shortener
+                    <span class="pro-tag">PRO</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-box">
+                <div class="stat-icon blue">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="todaySorted">0</span>
+                    <span class="stat-label">Today Sorted</span>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon purple">
+                    <i class="fas fa-link"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="linkCount">0</span>
+                    <span class="stat-label">Total Links</span>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon green">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="Duplicate">0</span>
+                    <span class="stat-label">Duplicate</span>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon orange">
+                    <i class="fas fa-exclamation"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="fbWatchCount">0</span>
+                    <span class="stat-label">fb.watch</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        <i class="fas fa-edit"></i>
+                        <span>Input Links</span>
+                    </div>
+                    <div class="panel-btns">
+                        <button class="icon-btn" id="pasteBtn" title="Paste">
+                            <i class="fas fa-paste"></i>
+                        </button>
+                        <button class="icon-btn red" id="clearInputBtn" title="Clear">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <textarea class="input-box" id="inputLinks" placeholder="🔗 এখানে লিংকগুলো পেস্ট করুন...
+
+📝 সাপোর্টেড ফরম্যাট:
+• Link no: 101
+• লিংক নং ১০১  
+• 𝐋𝐢𝐧𝐤 𝐍𝐨 ➡️ 101
+• Like No..101
+
+🏷️ Special Tags:
+• #VIP1, #Admin1, #Moderator1, #Notice1
+• #ভিআইপি১, #এডমিন১, #মডারেটর১, #নোটিশ১"></textarea>
+
+                    <div class="options-row">
+                        <div class="opt-box">
+                            <label><i class="fas fa-layer-group"></i> Batch Name</label>
+                            <input type="text" id="batchName" placeholder="যেমন: 101-123">
+                        </div>
+                        <div class="opt-box">
+                            <label><i class="fas fa-hashtag"></i> Start No</label>
+                            <input type="number" id="startNum" placeholder="Auto">
+                        </div>
+                    </div>
+
+                    <div class="toggles">
+                        <label class="toggle">
+                            <input type="checkbox" id="showBreaks" checked>
+                            <span class="toggle-track"></span>
+                            <span>১০ লিংকে ব্রেক</span>
+                        </label>
+                        <label class="toggle">
+                            <input type="checkbox" id="showEmoji" checked>
+                            <span class="toggle-track"></span>
+                            <span>ইমোজি</span>
+                        </label>
+                        <label class="toggle">
+                            <input type="checkbox" id="rotateLabels" checked>
+                            <span class="toggle-track"></span>
+                            <span>Label Rotate</span>
+                        </label>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn-sort" id="sortBtn">
+                            <i class="fas fa-magic"></i>
+                            <span>Sort করুন</span>
+                        </button>
+                        <button class="btn-reset" id="resetBtn">
+                            <i class="fas fa-redo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div class="panel-title">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Output</span>
+                    </div>
+                    <div class="panel-btns">
+                        <button class="icon-btn green" id="copyBtn" title="Copy">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button class="icon-btn" id="downloadBtn" title="Download">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="alert" id="alertBox">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="alertText"></span>
+                    </div>
+
+                    <div class="output-box" id="outputArea">
+                        <div class="empty">
+                            <i class="fas fa-inbox"></i>
+                            <p>সাজানো লিংক এখানে দেখাবে</p>
+                        </div>
+                    </div>
+
+                    <div class="summary" id="summaryPanel">
+                        <div class="summary-title"><i class="fas fa-chart-bar"></i> সারসংক্ষেপ</div>
+                        <div class="summary-grid" id="summaryGrid"></div>
+                    </div>
+
+                    <div class="copy-row">
+                        <button class="copy-btn" id="copyPlainBtn">
+                            <i class="fas fa-clipboard"></i>
+                            Plain Copy
+                        </button>
+                        <button class="copy-btn fb" id="copyFBBtn">
+                            <i class="fab fa-facebook"></i>
+                            FB Ready
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="history">
+            <div class="history-head">
+                <h3><i class="fas fa-history"></i> Recent History</h3>
+                <button class="clear-btn" id="clearHistoryBtn">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="no-history">
+                    <i class="fas fa-clock"></i>
+                    <p>কোনো হিস্টোরি নেই</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-logo">
+                <i class="fas fa-bolt"></i>
+                <span>Link Shortener Pro</span>
+            </div>
+            <div class="footer-support">
+                <p class="powered">Powered by</p>
+                <a href="https://facebook.com/premierx" target="_blank" class="fb-link">
+                    <i class="fab fa-facebook"></i>
+                    Motivation Premier X Support Link Box
+                </a>
+            </div>
+            <p class="copyright">© 2026 All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Popup Modal -->
+    <div class="popup-overlay" id="popupOverlay">
+        <div class="popup-box">
+            <div class="popup-header">
+                <h3 id="popupTitle">Title</h3>
+                <button class="popup-close" id="popupClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="popup-body" id="popupBody"></div>
+        </div>
+    </div>
+
+    <!-- Scroll Top -->
+    <button class="scroll-top" id="scrollTopBtn">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- Toast -->
+    <div class="toast-box" id="toastBox"></div>
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+</html>
