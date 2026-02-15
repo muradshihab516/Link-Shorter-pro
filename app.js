@@ -16,8 +16,7 @@ const EMOJI_NUMBERS = {
     '5️⃣': '5', '6️⃣': '6', '7️⃣': '7', '8️⃣': '8', '9️⃣': '9', '🔟': '10'
 };
 
-// ===== 🎨 FANCY CSS STYLES =====
-// (Same as before, ensuring styles act correctly)
+// ===== 🎨 FANCY CSS STYLES (Styles remain same) =====
 const style = document.createElement('style');
 style.innerHTML = `
     .fancy-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.4s ease; }
@@ -74,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Copy Buttons
     $('copyBtn').addEventListener('click', () => copyText(outputText));
     $('copyPlainBtn').addEventListener('click', () => copyText(outputText));
-    $('copyFBBtn').addEventListener('click', () => copyText(outputText)); // Can be customized for FB specific format if needed
+    $('copyFBBtn').addEventListener('click', () => copyText(outputText)); 
 
     $('popupClose').addEventListener('click', () => $('popupOverlay').classList.remove('show'));
     $('clearHistoryBtn').addEventListener('click', clearHistory);
@@ -87,28 +86,62 @@ document.addEventListener('DOMContentLoaded', () => {
     $('scrollTopBtn').addEventListener('click', () => window.scrollTo(0,0));
 });
 
-// ===== 🧠 SMART EXTRACTION LOGIC =====
-function normalizeText(text) {
+// ===== 🧠 POWERFUL EXTRACTION LOGIC (FIXED) =====
+
+// 1. শুধু নাম্বার কনভার্ট করবে (বাংলা -> ইংরেজি)
+function convertNumbersOnly(text) {
     if (!text) return '';
     let t = text;
-    for (let bn in BENGALI_NUMBERS) t = t.replace(new RegExp(bn, 'g'), BENGALI_NUMBERS[bn]);
-    for (let em in EMOJI_NUMBERS) t = t.split(em).join(EMOJI_NUMBERS[em]);
+    for (let bn in BENGALI_NUMBERS) {
+        t = t.replace(new RegExp(bn, 'g'), BENGALI_NUMBERS[bn]);
+    }
+    for (let em in EMOJI_NUMBERS) {
+        t = t.split(em).join(EMOJI_NUMBERS[em]);
+    }
     return t;
 }
 
+// 2. নাম্বার খুঁজে বের করার মেইন ফাংশন
 function extractNumber(text) {
     if (!text) return null;
-    let clean = normalizeText(text).substring(0, 150);
-    const match = clean.match(/(?:link|post|serial|like|no|id)(?:[^0-9]{0,30})?(\d+)/i) || clean.match(/^(\d+)(?:\s|$|\D)/);
-    return match ? parseInt(match[1]) : null;
+
+    // ধাপ ১: বাংলা সংখ্যা ইংরেজি করা
+    let clean = convertNumbersOnly(text).substring(0, 150);
+
+    // ধাপ ২: বিরক্তিকর চিহ্ন মুছে ফেলা (:- , = . _ ইত্যাদি)
+    // "লিংক নং :-১১৬" হয়ে যাবে "লিংক নং  116"
+    clean = clean.replace(/[:\-_=,.]/g, " ");
+
+    // ধাপ ৩: সরাসরি বাংলা বা ইংরেজি কি-ওয়ার্ড খোঁজা
+    // এখানে আমরা সরাসরি Regex এর ভেতরে বাংলা শব্দ ঢুকিয়ে দিয়েছি
+    const regex = /(?:link|post|serial|like|no|id|লিংক|পোস্ট|সিরিয়াল|নং|নাম্বার|সংখ্যা)(?:\s+)?(?:no|নং|নাম্বার)?(?:\s+)?(\d+)/i;
+    
+    const match = clean.match(regex);
+    
+    if (match) {
+        return parseInt(match[1]);
+    }
+
+    // ধাপ ৪ (Fallback): যদি কোনো কি-ওয়ার্ড না থাকে, কিন্তু শুরুতে নাম্বার থাকে (যেমন: "101 check link")
+    const simpleMatch = clean.match(/^(\d+)(?:\s|$|\D)/);
+    if (simpleMatch) {
+        return parseInt(simpleMatch[1]);
+    }
+
+    return null;
 }
 
 function cleanInstruction(text) {
     if (!text) return '';
     return text
-        .replace(/(?:link|post|serial|like|no|id)(?:[^0-9]{0,30})?\d+/gi, '') 
+        // রিমুভ কি-ওয়ার্ডস
+        .replace(/(?:link|post|serial|like|no|id|লিংক|পোস্ট|সিরিয়াল|নং|নাম্বার)(?:[^0-9]{0,30})?\d+/gi, '') 
+        // রিমুভ শুরু নাম্বার
         .replace(/^\d+\s*/gm, '')
+        // রিমুভ ট্যাগস
         .replace(/#(admin|vip|notice|mod|এডমিন|ভিআইপি|নোটিশ)\w*/gi, '')
+        // রিমুভ চিহ্ন
+        .replace(/[:\-_]/g, ' ')
         .replace(/\n+/g, ' ') 
         .trim();
 }
@@ -137,10 +170,16 @@ function processLinks() {
         let num = null;
         if (type === 'regular') {
             num = extractNumber(rawText);
-            if (num === null && lastFound !== null && rawText.length < 150) num = lastFound + 1;
+            
+            // Smart Sequence: নাম্বার না পেলে আগেরটার পরেরটা হবে
+            if (num === null && lastFound !== null && rawText.length < 150) {
+                num = lastFound + 1;
+            }
             if (num !== null) lastFound = num;
         }
-        if (type === 'regular' && num === null) type = 'admin'; // Fallback
+        
+        // এখনো নাম্বার না পেলে সেটা এডমিন সেকশনে যাবে
+        if (type === 'regular' && num === null) type = 'admin';
 
         entries.push({ num, url, type, inst: cleanInstruction(rawText) });
     }
@@ -178,7 +217,6 @@ function processLinks() {
         // --- RE-NUMBERING MODE ---
         let currentSerial = parseInt(startNumInput);
         regular.forEach(item => {
-            // Check for fb.watch
             if (/fb\.watch/i.test(item.url)) fbWatchList.push(currentSerial);
             
             finalRegularList.push({
@@ -192,9 +230,7 @@ function processLinks() {
         if (finalRegularList.length > 0) {
             min = finalRegularList[0].displayNum;
             max = finalRegularList[finalRegularList.length - 1].displayNum;
-        } else {
-            min = 0; max = 0;
-        }
+        } else { min = 0; max = 0; }
     } else {
         // --- ORIGINAL NUMBER MODE (With Missing) ---
         if (regular.length > 0) {
@@ -208,18 +244,15 @@ function processLinks() {
                     if (/fb\.watch/i.test(item.url)) fbWatchList.push(i);
                     finalRegularList.push({ displayNum: i, url: item.url, inst: item.inst });
                 } else {
-                    missingList.push(i); // Add to missing list
-                    finalRegularList.push({ displayNum: i, url: null, inst: null }); // Placeholder
+                    missingList.push(i);
+                    finalRegularList.push({ displayNum: i, url: null, inst: null });
                 }
             }
-        } else {
-            min = 0; max = 0;
-        }
+        } else { min = 0; max = 0; }
     }
 
     // 4. Update Batch Name Input (Smart Update)
     const detectedRange = `${min}-${max}`;
-    // Only update if empty OR if it looks like a simple range (prevent overwriting custom text)
     if (!batchNameInput.value.trim() || /^\d+-\d+$/.test(batchNameInput.value.trim())) {
         batchNameInput.value = detectedRange;
     }
@@ -273,7 +306,7 @@ function processLinks() {
 
     // UI Updates
     outputText = result;
-    $('outputArea').innerHTML = result; // Plain text inside pre-styled box
+    $('outputArea').innerHTML = result;
     
     updateAlertBox();
     const total = regular.length + vip.length + notice.length + admin.length;
