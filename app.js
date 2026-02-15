@@ -108,7 +108,7 @@ function cleanInstruction(text) {
     return text
         .replace(/(?:link|post|serial|like|no|id)(?:[^0-9]{0,30})?\d+/gi, '') 
         .replace(/^\d+\s*/gm, '')
-        .replace(/#(admin|vip|notice||এডমিন|ভিআইপি|নোটিশ)\w*/gi, '')
+        .replace(/#(admin|vip|notice|mod|এডমিন|ভিআইপি|নোটিশ)\w*/gi, '')
         .replace(/\n+/g, ' ') 
         .trim();
 }
@@ -132,7 +132,7 @@ function processLinks() {
         let type = 'regular';
         if (/#vip|#ভিআইপি/i.test(rawText)) type = 'vip';
         else if (/#notice|#নোটিশ/i.test(rawText)) type = 'notice';
-        else if (/#admin|#এডমিন|#Moderator/i.test(rawText)) type = 'admin';
+        else if (/#admin|#এডমিন|#mod/i.test(rawText)) type = 'admin';
 
         let num = null;
         if (type === 'regular') {
