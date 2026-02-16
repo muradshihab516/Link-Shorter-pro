@@ -7,16 +7,15 @@ let missingList = [];
 // ===== Configuration =====
 const EMOJIS = ['🎯', '🌟', '🌀', '🔥', '🌈', '⚡', '🌸', '💎', '🎉', '🌍', '🦋', '🌷', '🌺', '🌼', '🍂', '🍁', '🪷', '🌙', '☁️', '🫧'];
 const LABELS = ['Post No', 'Serial No', 'Count', 'Link', 'Memo No', 'Case No', 'Receipt No', 'Booking No', 'Ticket No', 'Doc No'];
-const REACT_EMOJIS = ['😊', '😍', '😻', '😇', '😘', '💖', '🥰', '😜', '🤗', '😌'];
 
-// ===== Bengali & Emoji to English Map =====
+// ===== Bengali & Emoji Map =====
 const BENGALI_NUMBERS = {'০':'0', '১':'1', '২':'2', '৩':'3', '৪':'4', '৫':'5', '৬':'6', '৭':'7', '৮':'8', '৯':'9'};
 const EMOJI_NUMBERS = {
     '0️⃣': '0', '1️⃣': '1', '2️⃣': '2', '3️⃣': '3', '4️⃣': '4',
     '5️⃣': '5', '6️⃣': '6', '7️⃣': '7', '8️⃣': '8', '9️⃣': '9', '🔟': '10'
 };
 
-// ===== 🎨 FANCY CSS STYLES (Styles remain same) =====
+// ===== 🎨 FANCY CSS STYLES =====
 const style = document.createElement('style');
 style.innerHTML = `
     .fancy-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); z-index: 10000; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.4s ease; }
@@ -86,46 +85,80 @@ document.addEventListener('DOMContentLoaded', () => {
     $('scrollTopBtn').addEventListener('click', () => window.scrollTo(0,0));
 });
 
-// ===== 🧠 POWERFUL EXTRACTION LOGIC (FIXED) =====
+// ===== 🧠 UNIVERSAL FANCY FONT DECODER =====
+// This function handles ALL types of fancy fonts (Bold, Italic, Script, Double-struck, etc.)
+function unfancy(str) {
+    return str.normalize('NFKD').replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(char) {
+        const code = char.codePointAt(0);
+        
+        // Mathematical Alphanumeric Symbols range (A-Z, a-z, 0-9 in various styles)
+        if (code >= 119808 && code <= 120831) {
+            // Calculate offset to ASCII
+            // This covers Bold, Italic, Bold-Italic, Script, Bold-Script, Fraktur, 
+            // Double-Struck, Sans-Serif, Sans-Serif Bold, Monospace
+            
+            // Numbers 0-9
+            if ((code >= 120782 && code <= 120791) || // Bold 0-9
+                (code >= 120802 && code <= 120811) || // Double-Struck 0-9
+                (code >= 120812 && code <= 120821) || // Sans-Serif 0-9
+                (code >= 120822 && code <= 120831) || // Sans Bold 0-9
+                (code >= 120792 && code <= 120801)) { // Monospace 0-9
+                 return String.fromCharCode(48 + (code % 10)); // 48 is ASCII '0'
+            }
+            
+            // Letters are more complex due to gaps in Unicode, 
+            // but for detecting "Link No", normalization often handles the letters.
+            // We focus heavily on numbers here.
+        }
+        return char;
+    }).normalize('NFKC'); // Re-normalize to standard text
+}
 
-// 1. শুধু নাম্বার কনভার্ট করবে (বাংলা -> ইংরেজি)
-function convertNumbersOnly(text) {
+function normalizeText(text) {
     if (!text) return '';
     let t = text;
+
+    // 1. Unfancy (Fancy Fonts -> Normal Text)
+    t = unfancy(t);
+
+    // 2. Bengali Numbers (০-৯ -> 0-9)
     for (let bn in BENGALI_NUMBERS) {
         t = t.replace(new RegExp(bn, 'g'), BENGALI_NUMBERS[bn]);
     }
+    
+    // 3. Emoji Numbers
     for (let em in EMOJI_NUMBERS) {
         t = t.split(em).join(EMOJI_NUMBERS[em]);
     }
+
     return t;
 }
 
-// 2. নাম্বার খুঁজে বের করার মেইন ফাংশন
 function extractNumber(text) {
     if (!text) return null;
-
-    // ধাপ ১: বাংলা সংখ্যা ইংরেজি করা
-    let clean = convertNumbersOnly(text).substring(0, 150);
-
-    // ধাপ ২: বিরক্তিকর চিহ্ন মুছে ফেলা (:- , = . _ ইত্যাদি)
-    // "লিংক নং :-১১৬" হয়ে যাবে "লিংক নং  116"
-    clean = clean.replace(/[:\-_=,.]/g, " ");
-
-    // ধাপ ৩: সরাসরি বাংলা বা ইংরেজি কি-ওয়ার্ড খোঁজা
-    // এখানে আমরা সরাসরি Regex এর ভেতরে বাংলা শব্দ ঢুকিয়ে দিয়েছি
-    const regex = /(?:link|post|serial|like|no|id|লিংক|পোস্ট|সিরিয়াল|নং|নাম্বার|সংখ্যা)(?:\s+)?(?:no|নং|নাম্বার)?(?:\s+)?(\d+)/i;
     
-    const match = clean.match(regex);
+    // Step 1: Normalization
+    let clean = normalizeText(text).substring(0, 150);
     
-    if (match) {
-        return parseInt(match[1]);
-    }
+    // Step 2: Remove separators to merge "Link : 43" to "Link 43"
+    clean = clean.replace(/[:\-_=,|.]/g, " ");
 
-    // ধাপ ৪ (Fallback): যদি কোনো কি-ওয়ার্ড না থাকে, কিন্তু শুরুতে নাম্বার থাকে (যেমন: "101 check link")
-    const simpleMatch = clean.match(/^(\d+)(?:\s|$|\D)/);
-    if (simpleMatch) {
-        return parseInt(simpleMatch[1]);
+    // Step 3: Keyword based detection (Strongest)
+    // Matches: Link 43, Post 43, Serial 43, No 43
+    const regex = /(?:link|post|serial|like|no|id|লিংক|পোস্ট|সিরিয়াল|নং|নাম্বার)(?:\s+)?(?:no|নং|নাম্বার)?(?:\s+)?(\d+)/i;
+    let match = clean.match(regex);
+    if (match) return parseInt(match[1]);
+
+    // Step 4: Fallback - Start of line number (Medium)
+    // Matches: "43 . some text" or "43"
+    const startMatch = clean.match(/^\s*(\d+)/);
+    if (startMatch) return parseInt(startMatch[1]);
+    
+    // Step 5: Last Resort - Any standalone number (Weak but catches "Good Link 43")
+    // Only if text is short (avoid picking phone numbers or dates from long text)
+    if(clean.length < 50) {
+        const anyNum = clean.match(/(\d+)/);
+        if(anyNum) return parseInt(anyNum[1]);
     }
 
     return null;
@@ -133,17 +166,18 @@ function extractNumber(text) {
 
 function cleanInstruction(text) {
     if (!text) return '';
-    return text
-        // রিমুভ কি-ওয়ার্ডস
-        .replace(/(?:link|post|serial|like|no|id|লিংক|পোস্ট|সিরিয়াল|নং|নাম্বার)(?:[^0-9]{0,30})?\d+/gi, '') 
-        // রিমুভ শুরু নাম্বার
-        .replace(/^\d+\s*/gm, '')
-        // রিমুভ ট্যাগস
-        .replace(/#(admin|vip|notice|mod|এডমিন|ভিআইপি|নোটিশ)\w*/gi, '')
-        // রিমুভ চিহ্ন
-        .replace(/[:\-_]/g, ' ')
-        .replace(/\n+/g, ' ') 
-        .trim();
+    
+    let t = normalizeText(text); // Unfancy first
+    
+    // Remove the Link/Number identifier parts
+    t = t.replace(/(?:link|post|serial|like|no|id|লিংক|পোস্ট|সিরিয়াল|নং|নাম্বার)(?:[^0-9]{0,30})?\d+/gi, '')
+         .replace(/^\d+\s*/gm, '') // Remove starting numbers
+         .replace(/[:\-_]/g, ' ')  // Remove separators
+         .replace(/#(admin|vip|notice|mod|এডমিন|ভিআইপি|নোটিশ)\w*/gi, '') // Remove tags
+         .replace(/\n+/g, ' ') // Flatten newlines
+         .trim();
+
+    return t;
 }
 
 // ===== MAIN PROCESSING =====
@@ -163,22 +197,26 @@ function processLinks() {
         const rawText = text.substring(prevEnd, urlMatches[i].index);
         
         let type = 'regular';
-        if (/#vip|#ভিআইপি/i.test(rawText)) type = 'vip';
-        else if (/#notice|#নোটিশ/i.test(rawText)) type = 'notice';
-        else if (/#admin|#এডমিন|#mod/i.test(rawText)) type = 'admin';
+        let normText = normalizeText(rawText); 
+        
+        if (/#vip|#ভিআইপি/i.test(normText)) type = 'vip';
+        else if (/#notice|#নোটিশ/i.test(normText)) type = 'notice';
+        else if (/#admin|#এডমিন|#mod/i.test(normText)) type = 'admin';
 
         let num = null;
         if (type === 'regular') {
             num = extractNumber(rawText);
             
-            // Smart Sequence: নাম্বার না পেলে আগেরটার পরেরটা হবে
-            if (num === null && lastFound !== null && rawText.length < 150) {
+            // Smart Sequence Fix:
+            // If we didn't find a number, BUT we have a previous number,
+            // AND the raw text doesn't look like a completely new distinct header (long text),
+            // Assume it's the next number.
+            if (num === null && lastFound !== null && rawText.length < 200) {
                 num = lastFound + 1;
             }
             if (num !== null) lastFound = num;
         }
         
-        // এখনো নাম্বার না পেলে সেটা এডমিন সেকশনে যাবে
         if (type === 'regular' && num === null) type = 'admin';
 
         entries.push({ num, url, type, inst: cleanInstruction(rawText) });
@@ -190,13 +228,28 @@ function processLinks() {
     let notice = entries.filter(e => e.type === 'notice');
     let admin = entries.filter(e => e.type === 'admin');
 
-    // Remove Duplicates
+    // // Remove Duplicates & Track them
     const seen = new Set();
+    const duplicates = [];
+
     regular = regular.filter(e => {
-        if (seen.has(e.num)) return false;
+        if (seen.has(e.num)) {
+            duplicates.push(e.num); // ডুপ্লিকেট নাম্বারটি লিস্টে রাখছে
+            return false;
+        }
         seen.add(e.num);
         return true;
     });
+
+    // ডুপ্লিকেট পাওয়া গেলে অ্যালার্ট ও পপআপ দেখাবে
+    if (duplicates.length > 0) {
+        const uniqueDups = [...new Set(duplicates)];
+        showToast(`⚠️ ডুপ্লিকেট সিরিয়াল: ${uniqueDups.join(', ')}`, 'warning');
+        
+        // ডুপ্লিকেট ডিটেইল পপআপ ফাংশন কল
+        showDuplicatePopup(uniqueDups);
+    }
+
 
     // Sort by Original Number
     regular.sort((a, b) => a.num - b.num);
@@ -211,8 +264,6 @@ function processLinks() {
     missingList = [];
     fbWatchList = [];
 
-    // Logic: If Start No is present, we Re-Number (Serial Mode)
-    // If Start No is empty, we use Original Numbers (Gap Detection Mode)
     if (startNumInput.trim() !== '') {
         // --- RE-NUMBERING MODE ---
         let currentSerial = parseInt(startNumInput);
@@ -232,7 +283,7 @@ function processLinks() {
             max = finalRegularList[finalRegularList.length - 1].displayNum;
         } else { min = 0; max = 0; }
     } else {
-        // --- ORIGINAL NUMBER MODE (With Missing) ---
+        // --- ORIGINAL NUMBER MODE ---
         if (regular.length > 0) {
             min = regular[0].num;
             max = regular[regular.length - 1].num;
@@ -251,7 +302,7 @@ function processLinks() {
         } else { min = 0; max = 0; }
     }
 
-    // 4. Update Batch Name Input (Smart Update)
+    // 4. Update Batch Name Input
     const detectedRange = `${min}-${max}`;
     if (!batchNameInput.value.trim() || /^\d+-\d+$/.test(batchNameInput.value.trim())) {
         batchNameInput.value = detectedRange;
@@ -268,13 +319,15 @@ function processLinks() {
         finalRegularList.forEach(item => {
             const emoji = EMOJIS[count % EMOJIS.length];
             const label = LABELS[count % LABELS.length];
-            const react = REACT_EMOJIS[count % REACT_EMOJIS.length];
-
+            
             result += `${emoji} ${label}: ${item.displayNum}\n`;
 
             if (item.url) {
                 result += `📌 ${item.url}\n`;
-                result += item.inst ? `💬 ${item.inst} ${react}\n` : `💬 Done ${react}\n`;
+                // INSTRUCTION FIX: Only show if exists
+                if (item.inst && item.inst.trim().length > 0) {
+                     result += `💬 ${item.inst}\n`;
+                }
             } else {
                 result += `📌 (নেই — Skipped)\n`;
             }
@@ -294,7 +347,9 @@ function processLinks() {
             result += `\n${icon}═══ ${title} ═══${icon}\n\n`;
             list.forEach((item, index) => {
                 result += `⭐ ${title} ${index + 1}\n📌 ${item.url}\n`;
-                if (item.inst) result += `💬 ${item.inst}\n`;
+                if (item.inst && item.inst.trim().length > 0) {
+                    result += `💬 ${item.inst}\n`;
+                }
                 result += '\n';
             });
         }
@@ -324,7 +379,6 @@ function updateStats() {
     $('linkCount').textContent = urls.length;
     $('Duplicate').textContent = urls.length - unique.size;
     
-    // Count fb.watch in input
     const fbCount = (text.match(/fb\.watch/gi) || []).length;
     $('fbWatchCount').textContent = fbCount;
 }
@@ -374,6 +428,20 @@ function showToast(msg, type = 'info') {
     toast.innerHTML = type === 'success' ? `<i class="fas fa-check-circle"></i> ${msg}` : `<i class="fas fa-exclamation-circle"></i> ${msg}`;
     $('toastBox').appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
+}
+function showDuplicatePopup(dupList) {
+    if (!$('popupOverlay')) return; // সেফটি চেক
+    
+    $('popupTitle').textContent = 'Duplicate Serial Numbers';
+    $('popupBody').innerHTML = `
+        <div class="popup-items">
+            ${dupList.map(n => `<span class="popup-item" style="background: #ffeaa7; color: #d63031; border: 1px solid #fab1a0;">${n}</span>`).join('')}
+        </div>
+        <div class="popup-count" style="color: #d63031; font-weight: bold; margin-top: 10px;">
+            সিস্টেম অটোমেটিক ডুপ্লিকেট লিংকগুলো বাদ দিয়েছে।
+        </div>
+    `;
+    $('popupOverlay').classList.add('show');
 }
 
 // ===== Utilities =====
