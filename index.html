@@ -13,6 +13,34 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* Fast Collector Button Style */
+        .nav-btn {
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.4);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.6);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
 
@@ -34,6 +62,11 @@
                     <span class="pro-tag">PRO</span>
                 </div>
             </div>
+            
+            <!-- 🔥 Fast Collector Button -->
+            <a href="collector.html" target="_blank" class="nav-btn">
+                <i class="fas fa-rocket"></i> Fast Collector
+            </a>
         </header>
 
         <!-- Stats Bar -->
@@ -95,22 +128,12 @@
                     </div>
                 </div>
                 <div class="panel-body">
-                    <textarea class="input-box" id="inputLinks" placeholder="🔗 এখানে লিংকগুলো পেস্ট করুন...
-
-📝 সাপোর্টেড ফরম্যাট:
-• Link no: 101
-• লিংক নং ১০১  
-• 𝐋𝐢𝐧𝐤 𝐍𝐨 ➡️ 101
-• Like No..101
-
-🏷️ Special Tags:
-• #VIP1, #Admin1, #Moderator1, #Notice1
-• #ভিআইপি১, #এডমিন১, #মডারেটর১, #নোটিশ১"></textarea>
+                    <textarea class="input-box" id="inputLinks" placeholder="🔗 Fast Collector থেকে কপি করা ডাটা এখানে পেস্ট করুন..."></textarea>
 
                     <div class="options-row">
                         <div class="opt-box">
                             <label><i class="fas fa-layer-group"></i> Batch Name</label>
-                            <input type="text" id="batchName" placeholder="যেমন: 101-123">
+                            <input type="text" id="batchName" placeholder="Auto (e.g. 101-150)">
                         </div>
                         <div class="opt-box">
                             <label><i class="fas fa-hashtag"></i> Start No</label>
@@ -123,16 +146,6 @@
                             <input type="checkbox" id="showBreaks" checked>
                             <span class="toggle-track"></span>
                             <span>১০ লিংকে ব্রেক</span>
-                        </label>
-                        <label class="toggle">
-                            <input type="checkbox" id="showEmoji" checked>
-                            <span class="toggle-track"></span>
-                            <span>ইমোজি</span>
-                        </label>
-                        <label class="toggle">
-                            <input type="checkbox" id="rotateLabels" checked>
-                            <span class="toggle-track"></span>
-                            <span>Label Rotate</span>
                         </label>
                     </div>
 
@@ -158,9 +171,6 @@
                     <div class="panel-btns">
                         <button class="icon-btn green" id="copyBtn" title="Copy">
                             <i class="fas fa-copy"></i>
-                        </button>
-                        <button class="icon-btn" id="downloadBtn" title="Download">
-                            <i class="fas fa-download"></i>
                         </button>
                     </div>
                 </div>
@@ -217,13 +227,6 @@
             <div class="footer-logo">
                 <i class="fas fa-bolt"></i>
                 <span>Link Shortener Pro</span>
-            </div>
-            <div class="footer-support">
-                <p class="powered">Powered by</p>
-                <a href="https://facebook.com/premierx" target="_blank" class="fb-link">
-                    <i class="fab fa-facebook"></i>
-                    Motivation Premier X Support Link Box
-                </a>
             </div>
             <p class="copyright">© 2026 All rights reserved.</p>
         </footer>
