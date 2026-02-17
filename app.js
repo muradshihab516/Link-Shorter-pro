@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     loadHistory();
     
-    // Listeners
     if(document.getElementById('inputLinks')) {
         document.getElementById('inputLinks').addEventListener('input', updateStats);
     }
@@ -76,19 +75,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ===== 🧠 UNIVERSAL FANCY FONT DECODER =====
+// ===== 🧠 UNIVERSAL DECODER (Handles Emoji, Symbols, Fancy Fonts) =====
 function unfancy(str) {
     return str.normalize('NFKD').replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(char) {
         const code = char.codePointAt(0);
+        
+        // Handle Fancy Fonts (Bold, Italic, etc.)
         if (code >= 119808 && code <= 120831) {
-            if ((code >= 120782 && code <= 120791) || 
-                (code >= 120802 && code <= 120811) || 
-                (code >= 120812 && code <= 120821) || 
-                (code >= 120822 && code <= 120831) || 
-                (code >= 120792 && code <= 120801)) { 
+            if ((code >= 120782 && code <= 120791) || (code >= 120802 && code <= 120811) || (code >= 120812 && code <= 120821) || (code >= 120822 && code <= 120831) || (code >= 120792 && code <= 120801)) { 
                  return String.fromCharCode(48 + (code % 10)); 
             }
         }
+        
+        // Handle Emojis & Symbols (🔗, 👉, etc.) by removing them if they are not numbers
+        // We actually want to keep them generally, but specific ones between "Link" and "Number" need removal.
+        // This function focuses on normalization. Removal happens in extractNumber.
+        
         return char;
     }).normalize('NFKC');
 }
@@ -110,13 +112,25 @@ function normalizeText(text) {
 // ===== 🔍 POWERFUL NUMBER EXTRACTION =====
 function extractNumber(text) {
     if (!text) return null;
+    
+    // Step 1: Normalize
     let clean = normalizeText(text).substring(0, 150);
-    clean = clean.replace(/[\.\,\;\:\_\-\=\|]+/g, ' ');
+    
+    // Step 2: AGGRESSIVE CLEANING
+    // Remove ANY emoji, symbol, or punctuation between words
+    // Keeps only Letters and Numbers and basic spaces
+    // This turns "Link 🔗 147" into "Link  147" and "Link no👉139" into "Link no 139"
+    
+    // Regex matches any character that is NOT a letter (a-z), NOT a number (0-9), and NOT a space
+    // It replaces them with a space
+    clean = clean.replace(/[^a-zA-Z0-9\s]/g, ' '); 
 
+    // Step 3: Regex for Keywords + Number
     const regex = /(?:link|post|serial|number|like|no|id|on|לינק|পোস্ট|সিরিয়াল|নং|নাম্বার)(?:\s+)?(?:no|number|num|on|নং)?(?:\s+)?(\d+)/i;
     let match = clean.match(regex);
     if (match) return parseInt(match[1]);
 
+    // Step 4: Fallback - Start of line number
     const startMatch = clean.match(/^\s*(\d+)/);
     if (startMatch) return parseInt(startMatch[1]);
     
@@ -127,10 +141,11 @@ function cleanInstruction(text) {
     if (!text) return '';
     let t = normalizeText(text); 
     
-    // Remove "Link No" part
-    t = t.replace(/(?:link|post|serial|like|no|id|on|לינק|পোস্ট|নং)(?:[\.\,\;\:\_\-\=\|\s]+)?(?:no|number|num|on|নং)?(?:[\.\,\;\:\_\-\=\|\s]+)?\d+/gi, '');
+    // Remove "Link ... 147" pattern with flexible cleaning
+    // We construct a regex that allows junk chars between Link and Number
+    t = t.replace(/(?:link|post|serial|like|no|id|on|לינק|পোস্ট|নং)(?:[^0-9]{0,20})?\d+/gi, '');
     
-    // Remove separator lines (------) & Collector Tag
+    // Remove separator lines
     t = t.replace(/-{3,}/g, '')
          .replace(/<<<BLOCK_SEPARATOR>>>/g, '');
     
@@ -149,26 +164,19 @@ function processLinks() {
     let rawText = document.getElementById('inputLinks').value;
     let entries = [];
     
-    // **SMART SPLIT LOGIC (UPDATED)**
-    // 1. Split by Fast Collector Tag
+    // **SMART SPLIT LOGIC**
+    let splitBlocks = [];
     if (rawText.includes('<<<BLOCK_SEPARATOR>>>')) {
-        let blocks = rawText.split('<<<BLOCK_SEPARATOR>>>');
-        blocks.forEach(block => {
-            if(block.trim()) entries = entries.concat(processSingleBlock(block));
-        });
-    } 
-    // 2. Split by Dashed Lines (------) - This handles your manual input example
-    else if (rawText.match(/-{4,}/)) { 
-        // Split by 4 or more dashes
-        let blocks = rawText.split(/-{4,}/);
-        blocks.forEach(block => {
-            if(block.trim()) entries = entries.concat(processSingleBlock(block));
-        });
-    } 
-    // 3. Fallback: Treat as one block
-    else {
-        entries = processSingleBlock(rawText);
+        splitBlocks = rawText.split('<<<BLOCK_SEPARATOR>>>');
+    } else if (rawText.match(/-{4,}/)) { 
+        splitBlocks = rawText.split(/-{4,}/);
+    } else {
+        splitBlocks = [rawText];
     }
+
+    splitBlocks.forEach(block => {
+        if(block.trim()) entries = entries.concat(processSingleBlock(block));
+    });
 
     if (entries.length === 0) return;
 
@@ -289,9 +297,6 @@ function processSingleBlock(text) {
     if (urlMatches.length === 0) return [];
 
     let blockEntries = [];
-    
-    // Process only first URL found in block (to avoid grabbing extra links in instruction)
-    // OR loop if multiple distinct posts are in one block (fallback)
     
     for (let i = 0; i < urlMatches.length; i++) {
         const url = urlMatches[i][1];
