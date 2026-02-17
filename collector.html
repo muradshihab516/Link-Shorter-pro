@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Collector - Order Fixed ⚡</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-body: #0a0f1e;
+            --bg-card: #161e31;
+            --primary: #8b5cf6; 
+            --accent: #06b6d4;  
+            --text-main: #f1f5f9;
+            --danger: #ef4444;
+            --border: #2d3748;
+            --modal-bg: #111827;
+            --modal-border: #374151;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); padding: 10px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 500px; padding-bottom: 120px; }
+
+        .header { text-align: center; padding: 15px 0; position: sticky; top: 0; background: var(--bg-body); z-index: 100; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+        .count-badge { background: var(--primary); padding: 2px 10px; border-radius: 10px; font-size: 0.8rem; margin-left: 8px; }
+
+        .input-box { background: var(--bg-card); padding: 12px; border-radius: 12px; border: 1px solid var(--accent); margin-bottom: 15px; }
+        textarea { 
+            width: 100%; height: 60px; background: transparent; border: none; 
+            color: white; resize: none; outline: none; font-size: 1.1rem; text-align: center;
+        }
+
+        .list-item { 
+            background: var(--bg-card); padding: 12px; border-radius: 10px; border-left: 4px solid var(--primary);
+            position: relative; margin-bottom: 8px; animation: popIn 0.2s ease;
+        }
+        .item-text { font-size: 0.9rem; color: #cbd5e1; word-break: break-all; padding-right: 20px; }
+        .del-btn { position: absolute; top: 8px; right: 8px; color: var(--danger); cursor: pointer; background: none; border: none; }
+
+        .footer { 
+            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); 
+            width: 95%; max-width: 480px; display: flex; gap: 8px; 
+        }
+        .btn-copy-all { background: #22c55e; color: white; flex: 1; font-size: 1rem; font-weight: bold; border-radius: 12px; height: 55px; cursor: pointer; border: none; }
+        .btn-clear { background: #1e293b; color: #f87171; width: 55px; border-radius: 12px; border: 1px solid var(--border); }
+
+        @keyframes popIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 8px 16px; border-radius: 20px; display: none; z-index: 1000; font-weight: bold; font-size: 0.8rem; }
+
+        /* Custom Modal (কালো ডিজাইন) */
+        #confirmModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: var(--modal-bg);
+            border: 1px solid var(--modal-border);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 420px;
+            padding: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);
+        }
+        .modal-title {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: #fbbf24;
+        }
+        .modal-body {
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #d1d5db;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .btn-modal {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-yes { background: #10b981; color: white; }
+        .btn-no  { background: #374151; color: #f3f4f6; }
+        .btn-yes:hover { background: #059669; }
+        .btn-no:hover  { background: #4b5563; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h3>⚡ Fast Collector <span class="count-badge" id="count">0</span></h3>
+        </div>
+
+        <div class="input-box">
+            <textarea id="txtInput" placeholder="ক্লিপবোর্ড থেকে এখানে ক্লিক করুন..." autofocus></textarea>
+        </div>
+
+        <div id="mainList"></div>
+    </div>
+
+    <div class="footer">
+        <button class="btn-clear" onclick="clearList()"><i class="fas fa-trash-alt"></i></button>
+        <button class="btn-copy-all" onclick="copyResult()"><i class="fas fa-copy"></i> COPY ALL (সিরিয়াল অনুযায়ী)</button>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-title">Admin/Moderator লিংক ডিটেক্ট হয়েছে!</div>
+            <div class="modal-body">
+                এটাকে নরমাল (সিম্পল) ফরম্যাটে করতে চান?<br>
+                <small style="color:#9ca3af;">হ্যাঁ → ফ্যান্সি বক্স/লাইন সরিয়ে সাধারণ টেক্সট করবে<br>না → অরিজিনাল যেমন আছে তেমনই যোগ হবে</small>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-no" id="btnNo">না</button>
+                <button class="btn-modal btn-yes" id="btnYes">হ্যাঁ, নরমাল করো</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let listData = JSON.parse(localStorage.getItem('ordered_links')) || [];
+        const input = document.getElementById('txtInput');
+
+        // অটো ইনপুট লিসেনার
+        input.addEventListener('input', () => {
+            setTimeout(processInstantAdd, 30);
+        });
+
+        function processInstantAdd() {
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (isLikelyAdminModeratorBox(val)) {
+                showCustomConfirm((shouldNormalize) => {
+                    let finalText = val;
+                    if (shouldNormalize) {
+                        finalText = normalizeAdminBox(val);
+                        notify("নরমালাইজ করে যোগ করা হলো! ✅");
+                    } else {
+                        notify("অরিজিনাল হিসেবে যোগ করা হলো! ✅");
+                    }
+
+                    if (!listData.includes(finalText)) {
+                        listData.push(finalText);
+                        updateUI();
+                        window.scrollTo(0, document.body.scrollHeight);
+                    } else {
+                        notify("এই টেক্সট অলরেডি আছে!");
+                    }
+
+                    input.value = '';
+                    input.focus();
+                });
+            } else {
+                // সাধারণ কেস
+                if (!listData.includes(val)) {
+                    listData.push(val);
+                    updateUI();
+                    notify("অ্যাড হয়েছে! ✅");
+                    window.scrollTo(0, document.body.scrollHeight);
+                } else {
+                    notify("অলরেডি আছে!");
+                }
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // Custom confirm modal
+        function showCustomConfirm(callback) {
+            const modal = document.getElementById('confirmModal');
+            const btnYes = document.getElementById('btnYes');
+            const btnNo  = document.getElementById('btnNo');
+
+            modal.style.display = 'flex';
+
+            const yesHandler = () => {
+                callback(true);
+                modal.style.display = 'none';
+                btnYes.removeEventListener('click', yesHandler);
+                btnNo.removeEventListener('click', noHandler);
+            };
+
+            const noHandler = () => {
+                callback(false);
+                modal.style.display = 'none';
+                btnYes.removeEventListener('click', yesHandler);
+                btnNo.removeEventListener('click', noHandler);
+            };
+
+            btnYes.addEventListener('click', yesHandler);
+            btnNo.addEventListener('click', noHandler);
+        }
+
+        function isLikelyAdminModeratorBox(text) {
+            const lower = text.toLowerCase();
+            
+            const has_admin_mod = (
+                lower.includes('admin') || 
+                lower.includes('moderator') || 
+                lower.includes('modaretor') || 
+                lower.includes('অ্যাডমিন') || 
+                lower.includes('মডারেটর')
+            );
+            
+            const has_link = (
+                lower.includes('http') || 
+                lower.includes('facebook.com') || 
+                lower.includes('share/') || 
+                lower.includes('posts/')
+            );
+            
+            const has_box_or_decor = (
+                text.includes('support link box') || 
+                text.includes('সাপোর্ট লিঙ্ক') ||
+                lower.includes('box') ||
+                text.includes('🌀') || text.includes('✨') || 
+                text.includes('─') || text.includes('█') || 
+                text.includes('╔') || text.includes('╚') || 
+                text.includes('────────────────') ||
+                text.match(/[\u2500-\u257F]/) ||
+                (lower.includes('not allowed') && lower.includes('emoji'))
+            );
+            
+            return has_admin_mod && has_link && has_box_or_decor;
+        }
+
+        function normalizeAdminBox(text) {
+            let lines = text.split('\n');
+            let result = [];
+            let started = false;
+
+            for (let line of lines) {
+                let trimmed = line.trim();
+                
+                if (!started) {
+                    if (
+                        trimmed === '' ||
+                        trimmed.match(/^[═╔╚╗║─█✨🌀🟨 ░▒▓]+$/i) ||
+                        trimmed.includes('SUPPORT LINK BOX') ||
+                        trimmed.includes('সাপোর্ট লিঙ্ক বক্স') ||
+                        (trimmed.startsWith('🌀') && trimmed.includes('Box'))
+                    ) {
+                        continue;
+                    }
+                    
+                    let adminMatch = trimmed.match(/(?:👤\s*)?((?:Admin|অ্যাডমিন|Moderator|মডারেটর|Modaretor)\s*[:：]\s*.+)/i);
+                    if (adminMatch) {
+                        started = true;
+                        result.push(adminMatch[1].trim());
+                        continue;
+                    }
+                }
+                
+                if (started && trimmed !== '') {
+                    if (
+                        trimmed.startsWith('─') || 
+                        trimmed.startsWith('█') || 
+                        trimmed.match(/^[═╔╚╗║─✨🌀 ]+$/) ||
+                        trimmed === ''
+                    ) {
+                        continue;
+                    }
+                    result.push(trimmed);
+                }
+            }
+            
+            return result.join('\n').trim();
+        }
+
+        function copyResult() {
+            if(!listData.length) return notify("লিস্ট খালি!");
+            
+            const divider = "\n\n---------------------------------------\n\n";
+            const finalString = listData.join(divider);
+
+            navigator.clipboard.writeText(finalString).then(() => {
+                notify("সিরিয়াল অনুযায়ী কপি হয়েছে! 🎉");
+            });
+        }
+
+        function updateUI() {
+            localStorage.setItem('ordered_links', JSON.stringify(listData));
+            document.getElementById('count').innerText = listData.length;
+            const container = document.getElementById('mainList');
+            
+            container.innerHTML = listData.map((item, i) => `
+                <div class="list-item">
+                    <div class="item-text">${escapeHTML(item)}</div>
+                    <button class="del-btn" onclick="removeItem(${i})"><i class="fas fa-times-circle"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function removeItem(i) {
+            listData.splice(i, 1);
+            updateUI();
+        }
+
+        function clearList() {
+            if(confirm("সব মুছে ফেলবেন?")) {
+                listData = [];
+                updateUI();
+            }
+        }
+
+        function escapeHTML(str) {
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        }
+
+        function notify(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 1800);
+        }
+
+        window.onload = () => {
+            input.focus();
+            updateUI();
+        };
+    </script>
+</body>
+</html>
